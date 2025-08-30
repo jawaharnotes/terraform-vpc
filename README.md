@@ -134,6 +134,32 @@ Internet Gateway (IGW):
 Handles actual communication between EIP and the outside world
 
 
+## Security Group
+
+It’s basically a virtual firewall at the instance level (Example ec2) inside a VPC. 
+It will not work at SUBNET Level
+If you allow inbound traffic (e.g., SSH on port 22), the outbound response is automatically allowed, even if outbound rules don’t explicitly permit it. Stateful.
+By default: Inbound = deny all, Outbound = allow all
+
+## NACL Netwoek Access 
+
+A stateless firewall at the subnet level in a VPC. Works at subnet level.
+We have to enable both inbound and outbound separately.
+Broad subnet-level control (e.g., block an IP range)
+
+### Examples
+NACL Example
+Public subnet NACL → allows inbound 80/443 from 0.0.0.0/0, allows outbound ephemeral ports.
+Private subnet NACL → denies inbound from internet, allows only DB traffic from app subnets.
+
+SG Example
+Web server SG → allows inbound HTTP/HTTPS from 0.0.0.0/0.
+Database SG → allows inbound MySQL (3306) only from Web Server SG.
+
+### Analogy
+
+SG = Firewall rules for specific houses (instances) in a colony.
+NACL = Colony entrance gate rules (apply to all houses inside the subnet).
 
 
 
@@ -316,6 +342,232 @@ Also, we can see private subnet mapped to dev-private route table and destinatio
 ### Elastic IP for NAT Gateway
 
 <img width="1916" height="929" alt="image" src="https://github.com/user-attachments/assets/2ada08fe-2701-4db5-9d2d-384d16a0eed1" />
+
+
+## Creating Isolated Subnets
+
+An isolated subnet is a subnet that has no route to the internet — not through an Internet Gateway (IGW) and not through a NAT Gateway either.
+
+That means:
+No inbound internet access (from outside).
+No outbound internet access (to outside).
+
+Resources inside can only communicate with other subnets inside the VPC (via the VPC local route) or with other private networks via VPN / Direct Connect / VPC Peering / Transit Gateway.
+
+If we attach the public/private route . It will looase its identity as isolated subnets.
+
+Example : Sensitive DBs, Internal only services 
+
+### Adding the parameters with condition in locals
+
+we have added here the   create_isolated_subnets = true , If true then resource is going to get created 
+
+<img width="1795" height="983" alt="image" src="https://github.com/user-attachments/assets/0a739890-589c-4103-ad8e-1c45c21f9078" />
+
+Isolated subnet config:
+
+<img width="1909" height="565" alt="image" src="https://github.com/user-attachments/assets/eac72209-4976-461a-a778-65a7d5df432b" />
+
+Terraform plan
+
+<img width="1920" height="1106" alt="image" src="https://github.com/user-attachments/assets/db325cc9-a806-471f-830c-e0b1aaac2e6c" />
+
+Terraform apply
+
+<img width="1539" height="954" alt="image" src="https://github.com/user-attachments/assets/0c56b3dd-8144-4b22-aa99-58e58b87966e" />
+
+
+## Validation in console
+
+<img width="1913" height="950" alt="image" src="https://github.com/user-attachments/assets/ecaba7f1-320b-4c6a-a22e-19fe623f119c" />
+
+We can see that only local Route has been enabled
+
+<img width="1915" height="859" alt="image" src="https://github.com/user-attachments/assets/aa233fc7-d56b-4a24-b750-45019ed825b5" />
+
+<img width="1917" height="826" alt="image" src="https://github.com/user-attachments/assets/60feff56-20dd-4364-9a61-042bfd05b933" />
+
+
+## Using CIDR SUBNET Function
+
+By default, AWS will not assign us the subnet range.
+It needs atleast cidr range, from there it can do the auto assignment of Ip addresses
+
+cidr = cidrsubnet(local.vpc_cidr, 8, idx) . If cidr - 10.0.0.0/16 , 8 , 2 ---> it assigns IP from 10.0.0.0/24.
+
+If     
+cidr = cidrsubnet(local.vpc_cidr, 3, 2)  = 10.0.64.0/19
+cidr = cidrsubnet(local.vpc_cidr, 3, 3)  = 10.0.96.0/19
+vpc_cidr -> 10.0.0.0/16
+
+How cidrsubnet(supernet, newbits, netnum) works
+supernet = 10.0.0.0/16
+Each subnet will then have prefix length = 16 + 3 = 19 → i.e. /19 networks
+
+Each /19 = 8,192 IPs (8k addresses per subnet).
+
+ Subnetting 10.0.0.0/16 into 8 × /19
+
+The 8 subnets will be:
+
+netnum	Subnet (CIDR)
+0	10.0.0.0/19
+1	10.0.32.0/19
+2	10.0.64.0/19
+3	10.0.96.0/19
+4	10.0.128.0/19
+5	10.0.160.0/19
+6	10.0.192.0/19
+7	10.0.224.0/19
+
+Edited our private subnet to use the cidrsubnet
+
+<img width="1915" height="992" alt="image" src="https://github.com/user-attachments/assets/f34c0624-1411-4d8f-a9ea-9b76f1f95b18" />
+
+Terraform plan
+
+It already says about the replacement 
+As our  
+private 2 - cidr = cidrsubnet(local.vpc_cidr, 3, 2) . It chnages from "10.0.96.0/19" -> "10.0.64.0/19"
+<img width="1900" height="931" alt="image" src="https://github.com/user-attachments/assets/bc4814d8-97bd-4cf6-b4e1-53063b685c57" />
+
+terraform apply
+
+It ended with conflict with Private subnet 1. Also it DESTROYED the private subnet 2
+
+<img width="1900" height="968" alt="image" src="https://github.com/user-attachments/assets/03c5a776-21c7-4d8a-b044-f09224379d94" />
+
+<img width="1920" height="625" alt="image" src="https://github.com/user-attachments/assets/50917991-b831-41b7-bfb7-889fd916912b" />
+
+
+So, i will keep the private subnet 2 - cidr = cidrsubnet(local.vpc_cidr, 3, 3) . It will have the "10.0.96.0/19" and create it back
+
+<img width="1912" height="998" alt="image" src="https://github.com/user-attachments/assets/f1d22ba5-52e9-468d-8210-a76557277b3f" />
+
+Terraform plan
+
+<img width="1888" height="935" alt="image" src="https://github.com/user-attachments/assets/8d6e9486-bbef-48c7-a3d5-32f283ac2e0c" />
+
+Terraform apply
+
+<img width="1553" height="745" alt="image" src="https://github.com/user-attachments/assets/a0772313-55e3-4f3c-a515-c02edbbddb7c" />
+
+Private subnet 2 created again :
+
+<img width="1909" height="957" alt="image" src="https://github.com/user-attachments/assets/a3950a11-0dea-459b-b438-04fa64fce0fb" />
+
+Also it got associated with NAT Gateway:
+
+<img width="1920" height="1002" alt="image" src="https://github.com/user-attachments/assets/1b37156e-cabe-451e-8127-bfdbf03a099b" />
+
+
+## Creating the security Group
+
+<img width="1476" height="688" alt="image" src="https://github.com/user-attachments/assets/442e7ab9-6378-415a-b446-34ee0d30d77f" />
+
+<img width="1913" height="1055" alt="image" src="https://github.com/user-attachments/assets/2bfea35c-ec46-4f00-9029-49bf56515380" />
+
+## Main things to understand
+
+### Dynamic vs For_each
+
+Both are used to iterate 
+But For_each will be doing at resource level
+Dynamic will do at sub components in a resource 
+
+### For each
+
+Used at the resource level.
+Creates multiple copies of a whole resource/module.
+You cannot use it to generate nested blocks inside a single resource.
+
+resource "aws_security_group" "web" {
+  for_each = {
+    ssh  = 22
+    http = 80
+  }
+
+AWS will create the security group for ssh and http separately
+
+
+### Dynamic ( inside the resource )
+
+Used at the nested block level (e.g., ingress, egress, tag, etc.).
+Lets you generate multiple nested blocks inside a single resource.
+You use it when a block is repeatable but cannot take for_each directly.
+
+resource "aws_security_group" "web" {
+  name   = "web"
+  vpc_id = aws_vpc.main.id
+
+  dynamic "ingress" {
+    for_each = {
+      ssh  = 22
+      http = 80
+    } 
+    }
+    }
+This will create a 1 security group and create 2 ingress rules within that
+
+
+Terraform plan
+
+<img width="1883" height="1090" alt="image" src="https://github.com/user-attachments/assets/c140fc82-9d56-481a-9fc4-522ef89ced79" />
+
+Terraform apply
+
+<img width="1682" height="840" alt="image" src="https://github.com/user-attachments/assets/b6c33f20-79d1-4a49-b217-d4889611b77c" />
+
+### Validation
+
+Security group got created 
+
+<img width="1920" height="875" alt="image" src="https://github.com/user-attachments/assets/6310d65c-d08b-4631-8d03-7594df8c4905" />
+
+## Destroy the resource 
+
+terraform destroy
+
+<img width="1869" height="1036" alt="image" src="https://github.com/user-attachments/assets/46435394-14aa-47ad-b077-3413555a266c" />
+
+Validation:
+
+VPC got deleted:
+
+<img width="1916" height="586" alt="image" src="https://github.com/user-attachments/assets/c2fa5174-1319-4b71-993e-8e7b0f368a51" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
