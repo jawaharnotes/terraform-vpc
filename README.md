@@ -1,7 +1,7 @@
 Creating the new VPC , public and private subnets, IGW, Routes, Route Association, NAT Gateways, Private subnet, Route table and Route Table Association
 
 
-Things to understand :
+#Things to understand :
 
 Public Subnet :
 
