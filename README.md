@@ -3,6 +3,8 @@ Creating the new VPC , public and private subnets, IGW, Routes, Route Associatio
 
 # Things to understand :
 
+## All public and private subnet are simply private IP ranges . If it has access to IGW, its called public and if it has no access to IGW its called private . Both Public and private subnets needs a Public IP or EIP ( both given by aws IP pool) to communicate with internet through IGW(public subnets) and through NAT-->IGW(private subnets)
+
 ## Public Subnet :
 
 A subnet is just an IP range inside your VPC. It becomes public only if:
