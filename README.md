@@ -1,9 +1,9 @@
 Creating the new VPC , public and private subnets, IGW, Routes, Route Association, NAT Gateways, Private subnet, Route table and Route Table Association
 
 
-#Things to understand :
+# Things to understand :
 
-Public Subnet :
+## Public Subnet :
 
 A subnet is just an IP range inside your VPC. It becomes public only if:
 Its route table has a default route (0.0.0.0/0) pointing to the Internet Gateway (IGW).
@@ -12,7 +12,7 @@ So in a public subnet:
 EC2 instances (with a public IP or EIP) can talk directly to the internet.
 Example: Load Balancers, Bastion Hosts, NAT Gateway usually go here.
 
-Private Subnet:
+## Private Subnet:
 
 A subnet is private if:
 It does not have a route to the IGW.
@@ -23,7 +23,7 @@ But they can initiate outbound traffic (like yum update, apt upgrade, download s
 
 Example: Databases, application servers, internal microservices live here.
 
-Route:
+## Route:
 
 Route gives the destination to reach .
 A route in a Route Table tells AWS:
@@ -36,14 +36,14 @@ Public Subnet → 0.0.0.0/0 → IGW → Internet
 Private Subnet → 0.0.0.0/0 → NAT (in Public Subnet) → IGW → Internet
 Isolated Subnet → NO 0.0.0.0/0 → stays internal
 
-IGW:
+## IGW:
 
 Internet gateway enables communication between public subnet to outside Internet in a VPN.
 In a VPN , default one IGW will be there .
 0.0.0.0/0 Is the route value for IGW in public subnet 
 
 
-NAT Gateway:
+## NAT Gateway:
 
 It helps the private subnets to reach the outside world. 
 NAT gateways are placed in public subnet . It always needs an EIP to communicate to outside world they IGW
@@ -64,7 +64,7 @@ Elastic IP (EIP) attachment:
 By default, that private IP cannot talk to the internet.
 So AWS forces you to attach an Elastic IP (EIP) → this gives the NAT Gateway a permanent public IPv4 address (like 3.95.12.45).
 
- Route setup:
+## Route setup:
 
 In your private subnets’ route tables, the default route (0.0.0.0/0) points to the NAT Gateway.
 So when an EC2 in a private subnet tries to connect to the internet (say yum update):
@@ -73,7 +73,7 @@ NAT Gateway translates private → Elastic IP.
 Sends it out via the Internet Gateway (IGW).
 Reply comes back to the EIP, NAT translates again → sends to private EC2.
 
-EIP: Elatic Ips
+## EIP: Elatic Ips
 
 They doesnot belong to any subnets . 
 They are provided from AWS Ip pool to comminicate to outside world
@@ -82,7 +82,7 @@ An EIP (Elastic IP) is not tied to a subnet.
 It’s an AWS-managed public IPv4 address that you can associate with: NAT Gateway, Load balancer
 
 
-Why must NAT Gateway be in a public subnet?
+## Why must NAT Gateway be in a public subnet?
 
 A public subnet is any subnet with a route to the Internet Gateway (IGW).
 When you place the NAT GW there, AWS can:
@@ -91,7 +91,7 @@ Bind your EIP (say 3.95.12.45) to that private IP
 Route internet traffic through the IGW (because the subnet has 0.0.0.0/0 → IGW)
 
 
-Complete flow :
+### Complete flow :
 
 How the pieces fit together
 
@@ -112,7 +112,7 @@ Handles actual communication between EIP and the outside world
 
 
 
-Locals :
+## Locals :
 
 Locals are a way to define local values (local variables) inside your configuration.
 
@@ -144,7 +144,7 @@ Create 2 public subnets inside my VPC (aws_vpc.main) — one in ap-south-1a and 
 
 <img width="1388" height="466" alt="image" src="https://github.com/user-attachments/assets/eee97a3f-16f7-4cf3-ab0f-ab3a7e6dca05" />
 
-Adding the Public Routes :
+## Adding the Public Routes :
 
 Creates 1 public route table with a default route → internet gateway.
 
@@ -174,7 +174,7 @@ A VPC, 2 Public subnets, IGW , Routes and Route association to Public Subnets
 <img width="1620" height="612" alt="image" src="https://github.com/user-attachments/assets/25bb06db-1d75-4088-8389-fb507864d45d" />
 
 
-Validating in Console :
+## Validating in Console :
 
 
 VPC created:
