@@ -1,4 +1,5 @@
-Creating the new VPC , public and private subnets, IGW, Routes, Route Association, NAT Gateways, Private subnet, Route table and Route Table Association
+Terraform helps us to create and maintain the cloud resources using the yaml files.
+I create here the new VPC, public, private and Isolated subnets,  IGW,  NAT Gateways, Routes, Route Table Association and Security groups using Terraform
 
 
 # Things to understand :
