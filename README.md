@@ -166,6 +166,17 @@ They are like temporary named values that you can reuse in your Terraform code t
 <img width="897" height="436" alt="image" src="https://github.com/user-attachments/assets/284324b8-96b6-4f91-a4ac-63c162c9f8ae" />
 
 ### Adding the public subnets
+
+AWS wont assign us public or private subnets, We have to calculate and assign them .
+Once terraform knows the VPCCIDR, it has ability to assign IP using cidrsubnet
+cidr = cidrsubnet(local.vpc_cidr, 8, idx) . If cidr - 10.0.0.0/16 , 8 , 2 ---> it assigns IP from 10.0.0.0/24.
+
+cidrsubnet("10.0.0.0/16", 8, 0) → 10.0.0.0/24
+cidrsubnet("10.0.0.0/16", 8, 1) → 10.0.1.0/24
+cidrsubnet("10.0.0.0/16", 8, 2) → 10.0.2.0/24
+
+
+
 Create 2 public subnets inside my VPC (aws_vpc.main) — one in ap-south-1a and one in ap-south-1b. Give them CIDRs from local.public_subnets, assign them names, and mark them for Kubernetes load balancers (for future use)
 
 <img width="1388" height="466" alt="image" src="https://github.com/user-attachments/assets/eee97a3f-16f7-4cf3-ab0f-ab3a7e6dca05" />
@@ -234,9 +245,87 @@ A VPC, 2 Public subnets, IGW , Routes and Route association to Public Subnets
 ## Adding the private Routes
 
 ### Creating NAT GW
-NAT GW will be placed in public subnet ( all subnets in public and private are obviously private) . As they need Real IP from AWS pool to communicate to external World. We are assigning an EIP
+
+NAT GW will be placed in public subnet ( all subnets in public and private are obviously private) . As they need Real IP from AWS pool to communicate to external World. We are assigning an EIP.
+Here we are creating NAT gateway only in one public Subnet . This is not recommened for Prod. For Prod , we need NAT gateway for each AZ.
 
 <img width="1479" height="653" alt="image" src="https://github.com/user-attachments/assets/040b7b67-6558-4875-80ae-80383474efbf" />
+
+### Adding the local variables for the private subnets
+
+<img width="1650" height="714" alt="image" src="https://github.com/user-attachments/assets/dadfbd57-307b-4665-a6fa-86300dd1e7a9" />
+
+
+### Private subnet Config
+
+<img width="1483" height="485" alt="image" src="https://github.com/user-attachments/assets/3e557e9f-b3a3-46c9-b091-ef15552fa584" />
+
+### Private route config
+
+A private route table is created and associated with our VPC
+Defined a Route - CIDR 0.0.0.0/0 and we made that to route to point to NAT Gateway
+
+Binding all private subnets using their IDs with Private route table ID. So, All private Subnet will now use this Private route Table
+
+<img width="1717" height="707" alt="image" src="https://github.com/user-attachments/assets/6dec9b1f-fe7b-46a7-8509-016485ef76c6" />
+
+
+Now , we will do 
+
+terraform plan 
+
+<img width="1920" height="1063" alt="image" src="https://github.com/user-attachments/assets/b2f4a1ac-9f3a-45b2-b5d3-e8770944c3f2" />
+
+A EIP, NAT Gateway, Private Route table, private subnets, Route table association for both private Ips will be created 
+
+<img width="892" height="921" alt="image" src="https://github.com/user-attachments/assets/1edcec7a-e2fd-4efb-accb-c801bec7a523" />
+
+terraform apply
+
+<img width="1900" height="1075" alt="image" src="https://github.com/user-attachments/assets/bc868ec0-2908-4b2c-ac31-f59e5b4f4e3b" />
+
+
+## Validation in console
+
+### VPC and Resource MAP
+
+We can see public subnet mapped to dev-public route table and destination to IGW
+Also, we can see private subnet mapped to dev-private route table and destination to NAT GW
+
+<img width="1912" height="945" alt="image" src="https://github.com/user-attachments/assets/6995114c-42cc-44d5-8658-786168a310d8" />
+
+### Private Subnets
+
+<img width="1914" height="873" alt="image" src="https://github.com/user-attachments/assets/6301dc25-6455-41e5-bf63-844511f078d7" />
+
+<img width="1905" height="842" alt="image" src="https://github.com/user-attachments/assets/28be3ad9-b21e-4492-8c47-1efc2faaef12" />
+
+### NAT Gateway
+
+<img width="1893" height="863" alt="image" src="https://github.com/user-attachments/assets/6747fc4d-d0ee-4348-8298-b518b743439b" />
+
+
+### Route table
+
+<img width="1913" height="850" alt="image" src="https://github.com/user-attachments/assets/fb854988-cbcb-48c7-a120-4f378e65c171" />
+
+### Route Association
+
+<img width="1916" height="843" alt="image" src="https://github.com/user-attachments/assets/41e84d34-fae2-4654-9c75-035cbb2128ec" />
+
+### Elastic IP for NAT Gateway
+
+<img width="1916" height="929" alt="image" src="https://github.com/user-attachments/assets/2ada08fe-2701-4db5-9d2d-384d16a0eed1" />
+
+
+
+
+
+
+
+
+
+
 
 
 
