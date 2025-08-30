@@ -23,6 +23,30 @@ But they can initiate outbound traffic (like yum update, apt upgrade, download s
 
 Example: Databases, application servers, internal microservices live here.
 
+## Subnet IPs
+When you create a subnet in a VPC (say 10.0.1.0/24), AWS assigns private IP addresses from that range.
+Example: 10.0.1.5, 10.0.1.10 etc.
+These never leave AWS privately — they are not internet-routable.
+Even if the subnet is called public, those IPs are still private IPs.
+What makes the subnet public is that it has a route 0.0.0.0/0 → IGW, allowing resources in it to be reachable if they also have a public IP.
+
+## Public IPs (Dynamic)
+If you launch an EC2 in a public subnet and enable auto-assign public IP, AWS gives it a temporary public IP from its pool.
+This is not stable:
+Stops/starts of the instance → new public IP.
+Behind the scenes: AWS maps
+Public IP - Private IP (e.g., 3.110.x.x → 10.0.1.5)
+
+## Elastic IP (EIP)
+An Elastic IP is a static public IPv4 address that belongs to your AWS account.
+It’s not tied to your subnet’s CIDR.
+Think of it as: AWS has a huge global pool of public IPv4 addresses (outside VPC ranges).
+When you allocate an EIP, you reserve one of those IPs.
+Then you associate it with a resource (EC2, NAT Gateway, etc).
+
+Now traffic goes like:
+EIP (say 13.234.x.x) - Private IP in Subnet (10.0.1.5)
+
 ## Route:
 
 Route gives the destination to reach .
@@ -128,23 +152,23 @@ They are like temporary named values that you can reuse in your Terraform code t
 <img width="1362" height="713" alt="image" src="https://github.com/user-attachments/assets/1d492483-ebb3-4927-a90f-c8099419b91f" />
 
 
-We will install the public subnets, Routes and IGW
+## We will install the public subnets, Routes and IGW
 
-Adding the local variables for the public subnets
+### Adding the local variables for the public subnets
 
 
 <img width="1024" height="399" alt="image" src="https://github.com/user-attachments/assets/51e000ae-be13-40c4-b490-809347f9c23e" />
 
-Adding the IGW using local variables created 
+### Adding the IGW using local variables created 
 
 <img width="897" height="436" alt="image" src="https://github.com/user-attachments/assets/284324b8-96b6-4f91-a4ac-63c162c9f8ae" />
 
-Adding the public subnets
+### Adding the public subnets
 Create 2 public subnets inside my VPC (aws_vpc.main) — one in ap-south-1a and one in ap-south-1b. Give them CIDRs from local.public_subnets, assign them names, and mark them for Kubernetes load balancers (for future use)
 
 <img width="1388" height="466" alt="image" src="https://github.com/user-attachments/assets/eee97a3f-16f7-4cf3-ab0f-ab3a7e6dca05" />
 
-## Adding the Public Routes :
+### Adding the Public Routes :
 
 Creates 1 public route table with a default route → internet gateway.
 
@@ -177,15 +201,15 @@ A VPC, 2 Public subnets, IGW , Routes and Route association to Public Subnets
 ## Validating in Console :
 
 
-VPC created:
+### VPC created:
 
 <img width="1911" height="965" alt="image" src="https://github.com/user-attachments/assets/b116124b-f18c-4c1a-9270-19e5fc4df469" />
 
-Resource Map:
+### Resource Map:
 
 <img width="1581" height="595" alt="image" src="https://github.com/user-attachments/assets/5d03812e-7689-4918-9166-f3482606fd1d" />
 
-2 Public Subnet :
+### 2 Public Subnet :
 
 <img width="1916" height="459" alt="image" src="https://github.com/user-attachments/assets/3ad1f8ac-c70c-46e6-bf71-1ede18a29173" />
 
@@ -194,15 +218,24 @@ Resource Map:
 
 <img width="1904" height="948" alt="image" src="https://github.com/user-attachments/assets/926b701c-18d4-4188-a8a6-5c4c18ee0713" />
 
-Route table for 2 public subnet:
+### Route table for 2 public subnet:
 
 <img width="1882" height="901" alt="image" src="https://github.com/user-attachments/assets/088a104f-2068-4dae-8342-c66434b42b79" />
 
 <img width="1914" height="952" alt="image" src="https://github.com/user-attachments/assets/bf9be0ec-4107-4bc0-8ec5-066cf06615ed" />
 
-IGW:
+### IGW:
 
 <img width="1920" height="943" alt="image" src="https://github.com/user-attachments/assets/758d2518-6963-4d5f-87c1-198f294f47ff" />
+
+
+## Adding the private Routes
+
+### Creating NAT GW
+NAT GW will be placed in public subnet ( all subnets in public and private are obviously private) . As they need Real IP from AWS pool to communicate to external World. We are assigning an EIP
+
+<img width="1479" height="653" alt="image" src="https://github.com/user-attachments/assets/040b7b67-6558-4875-80ae-80383474efbf" />
+
 
 
 
